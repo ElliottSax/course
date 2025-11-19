@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from 'next/font/google'
 import './globals.css'
 import { cn } from '@/lib/utils'
 import { Providers } from './providers'
+import { Header } from '@/components/layout/header'
 
 const inter = Inter({
   subsets: ['latin'],
@@ -71,7 +72,10 @@ export default function RootLayout({
           jetbrainsMono.variable
         )}
       >
-        <Providers>{children}</Providers>
+        <Providers>
+          <Header />
+          <main>{children}</main>
+        </Providers>
       </body>
     </html>
   )
