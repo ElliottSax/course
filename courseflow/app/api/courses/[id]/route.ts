@@ -18,10 +18,11 @@ const updateCourseSchema = z.object({
 // GET /api/courses/[id] - Get a single course
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await getUser()
+    const { id } = await params
 
     const [course] = await db
       .select({
@@ -43,7 +44,7 @@ export async function GET(
       })
       .from(courses)
       .leftJoin(users, eq(courses.instructorId, users.id))
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
       .limit(1)
 
     if (!course) {
@@ -65,14 +66,14 @@ export async function GET(
     const courseLessons = await db
       .select()
       .from(lessons)
-      .where(eq(lessons.courseId, params.id))
+      .where(eq(lessons.courseId, id))
       .orderBy(asc(lessons.order))
 
     // Get enrollment count
     const [{ count: enrollmentCount }] = await db
       .select({ count: sql<number>`COUNT(*)` })
       .from(enrollments)
-      .where(eq(enrollments.courseId, params.id))
+      .where(eq(enrollments.courseId, id))
 
     // Check if current user is enrolled
     let isEnrolled = false
@@ -83,7 +84,7 @@ export async function GET(
         .where(
           and(
             eq(enrollments.userId, user.id),
-            eq(enrollments.courseId, params.id)
+            eq(enrollments.courseId, id)
           )
         )
         .limit(1)
@@ -111,16 +112,17 @@ export async function GET(
 // PATCH /api/courses/[id] - Update a course
 export async function PATCH(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { id } = await params
 
     // Check if user owns this course
     const [existingCourse] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
       .limit(1)
 
     if (!existingCourse) {
@@ -146,14 +148,14 @@ export async function PATCH(
         ...updates,
         updatedAt: new Date(),
       })
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
       .returning()
 
     return NextResponse.json({ course: updatedCourse })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }
@@ -169,16 +171,17 @@ export async function PATCH(
 // DELETE /api/courses/[id] - Delete a course
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { id } = await params
 
     // Check if user owns this course
     const [existingCourse] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
       .limit(1)
 
     if (!existingCourse) {
@@ -198,7 +201,7 @@ export async function DELETE(
     // Delete the course (cascades will delete lessons)
     await db
       .delete(courses)
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
 
     return NextResponse.json({ message: 'Course deleted successfully' })
   } catch (error) {

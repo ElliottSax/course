@@ -7,16 +7,17 @@ import { eq, and } from 'drizzle-orm'
 // POST /api/courses/[id]/enroll - Enroll in a course
 export async function POST(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { id } = await params
 
     // Check if course exists and is published
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.id))
+      .where(eq(courses.id, id))
       .limit(1)
 
     if (!course) {
@@ -40,7 +41,7 @@ export async function POST(
       .where(
         and(
           eq(enrollments.userId, user.id),
-          eq(enrollments.courseId, params.id)
+          eq(enrollments.courseId, id)
         )
       )
       .limit(1)
@@ -57,7 +58,7 @@ export async function POST(
       .insert(enrollments)
       .values({
         userId: user.id,
-        courseId: params.id,
+        courseId: id,
         status: 'active',
       })
       .returning()
@@ -88,10 +89,11 @@ export async function POST(
 // DELETE /api/courses/[id]/enroll - Unenroll from a course
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { id } = await params
 
     // Find enrollment
     const [enrollment] = await db
@@ -100,7 +102,7 @@ export async function DELETE(
       .where(
         and(
           eq(enrollments.userId, user.id),
-          eq(enrollments.courseId, params.id)
+          eq(enrollments.courseId, id)
         )
       )
       .limit(1)

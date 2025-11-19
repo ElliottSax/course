@@ -1,4 +1,3 @@
-import { Suspense } from 'next'
 import Link from 'next/link'
 import { getUser } from '@/lib/auth'
 import { db } from '@/lib/db'

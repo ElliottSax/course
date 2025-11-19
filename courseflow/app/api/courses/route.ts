@@ -21,7 +21,12 @@ export async function GET(request: Request) {
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
-    let query = db
+    // Build where conditions
+    const whereConditions = category
+      ? and(eq(courses.status, 'published'), eq(courses.category, category))
+      : eq(courses.status, 'published')
+
+    const coursesList = await db
       .select({
         id: courses.id,
         title: courses.title,
@@ -38,21 +43,10 @@ export async function GET(request: Request) {
       })
       .from(courses)
       .leftJoin(users, eq(courses.instructorId, users.id))
-      .where(eq(courses.status, 'published'))
+      .where(whereConditions)
       .orderBy(desc(courses.createdAt))
       .limit(limit)
       .offset(offset)
-
-    if (category) {
-      query = query.where(
-        and(
-          eq(courses.status, 'published'),
-          eq(courses.category, category)
-        )
-      ) as any
-    }
-
-    const coursesList = await query
 
     return NextResponse.json({ courses: coursesList })
   } catch (error) {
@@ -89,7 +83,7 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }

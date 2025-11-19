@@ -2,8 +2,9 @@ import { pgTable, uuid, text, timestamp, integer, boolean, serial, jsonb } from 
 import { sql } from 'drizzle-orm'
 
 // Users table (extends Supabase auth.users)
+// Note: Foreign key to auth.users(id) should be set up in database migration
 export const users = pgTable('users', {
-  id: uuid('id').primaryKey().references(() => sql`auth.users(id)`),
+  id: uuid('id').primaryKey(),
   email: text('email').notNull().unique(),
   role: text('role', { enum: ['student', 'instructor', 'admin'] }).notNull().default('student'),
   stripeCustomerId: text('stripe_customer_id'),

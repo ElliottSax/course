@@ -16,18 +16,19 @@ const updateLessonSchema = z.object({
 // GET /api/courses/[courseId]/lessons/[lessonId] - Get a single lesson
 export async function GET(
   request: Request,
-  { params }: { params: { courseId: string; lessonId: string } }
+  { params }: { params: Promise<{ courseId: string; lessonId: string }> }
 ) {
   try {
     const user = await getUser()
+    const { courseId, lessonId } = await params
 
     const [lesson] = await db
       .select()
       .from(lessons)
       .where(
         and(
-          eq(lessons.id, params.lessonId),
-          eq(lessons.courseId, params.courseId)
+          eq(lessons.id, lessonId),
+          eq(lessons.courseId, courseId)
         )
       )
       .limit(1)
@@ -43,7 +44,7 @@ export async function GET(
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.courseId))
+      .where(eq(courses.id, courseId))
       .limit(1)
 
     if (!course) {
@@ -73,16 +74,17 @@ export async function GET(
 // PATCH /api/courses/[courseId]/lessons/[lessonId] - Update a lesson
 export async function PATCH(
   request: Request,
-  { params }: { params: { courseId: string; lessonId: string } }
+  { params }: { params: Promise<{ courseId: string; lessonId: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { courseId, lessonId } = await params
 
     // Check if user owns the course
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.courseId))
+      .where(eq(courses.id, courseId))
       .limit(1)
 
     if (!course) {
@@ -105,8 +107,8 @@ export async function PATCH(
       .from(lessons)
       .where(
         and(
-          eq(lessons.id, params.lessonId),
-          eq(lessons.courseId, params.courseId)
+          eq(lessons.id, lessonId),
+          eq(lessons.courseId, courseId)
         )
       )
       .limit(1)
@@ -127,14 +129,14 @@ export async function PATCH(
         ...updates,
         updatedAt: new Date(),
       })
-      .where(eq(lessons.id, params.lessonId))
+      .where(eq(lessons.id, lessonId))
       .returning()
 
     return NextResponse.json({ lesson: updatedLesson })
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }
@@ -150,16 +152,17 @@ export async function PATCH(
 // DELETE /api/courses/[courseId]/lessons/[lessonId] - Delete a lesson
 export async function DELETE(
   request: Request,
-  { params }: { params: { courseId: string; lessonId: string } }
+  { params }: { params: Promise<{ courseId: string; lessonId: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { courseId, lessonId } = await params
 
     // Check if user owns the course
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.courseId))
+      .where(eq(courses.id, courseId))
       .limit(1)
 
     if (!course) {
@@ -182,8 +185,8 @@ export async function DELETE(
       .from(lessons)
       .where(
         and(
-          eq(lessons.id, params.lessonId),
-          eq(lessons.courseId, params.courseId)
+          eq(lessons.id, lessonId),
+          eq(lessons.courseId, courseId)
         )
       )
       .limit(1)
@@ -198,7 +201,7 @@ export async function DELETE(
     // Delete the lesson
     await db
       .delete(lessons)
-      .where(eq(lessons.id, params.lessonId))
+      .where(eq(lessons.id, lessonId))
 
     return NextResponse.json({ message: 'Lesson deleted successfully' })
   } catch (error) {

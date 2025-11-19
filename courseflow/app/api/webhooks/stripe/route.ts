@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
 import { db } from '@/lib/db'
 import { enrollments, gamification } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 import { headers } from 'next/headers'
 import Stripe from 'stripe'
 
@@ -80,7 +80,7 @@ export async function POST(request: Request) {
             .onConflictDoUpdate({
               target: gamification.userId,
               set: {
-                xp: gamification.xp + 50,
+                xp: sql`${gamification.xp} + 50`,
                 lastActive: new Date(),
               },
             })

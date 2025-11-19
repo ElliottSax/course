@@ -16,16 +16,17 @@ const createLessonSchema = z.object({
 // GET /api/courses/[courseId]/lessons - List lessons for a course
 export async function GET(
   request: Request,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const user = await requireAuth().catch(() => null)
+    const { courseId } = await params
 
     // Check if course exists
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.courseId))
+      .where(eq(courses.id, courseId))
       .limit(1)
 
     if (!course) {
@@ -46,7 +47,7 @@ export async function GET(
     const courseLessons = await db
       .select()
       .from(lessons)
-      .where(eq(lessons.courseId, params.courseId))
+      .where(eq(lessons.courseId, courseId))
       .orderBy(asc(lessons.order))
 
     return NextResponse.json({ lessons: courseLessons })
@@ -62,16 +63,17 @@ export async function GET(
 // POST /api/courses/[courseId]/lessons - Create a new lesson
 export async function POST(
   request: Request,
-  { params }: { params: { courseId: string } }
+  { params }: { params: Promise<{ courseId: string }> }
 ) {
   try {
     const user = await requireAuth()
+    const { courseId } = await params
 
     // Check if user owns the course
     const [course] = await db
       .select()
       .from(courses)
-      .where(eq(courses.id, params.courseId))
+      .where(eq(courses.id, courseId))
       .limit(1)
 
     if (!course) {
@@ -94,7 +96,7 @@ export async function POST(
     const [lesson] = await db
       .insert(lessons)
       .values({
-        courseId: params.courseId,
+        courseId: courseId,
         title,
         content,
         videoUrl,
@@ -107,7 +109,7 @@ export async function POST(
   } catch (error) {
     if (error instanceof z.ZodError) {
       return NextResponse.json(
-        { error: error.errors[0].message },
+        { error: error.issues[0].message },
         { status: 400 }
       )
     }
